@@ -79,6 +79,44 @@ compose_up_wrapper() {
     esac
 }
 
+send_gotify_notification() {
+    if [[ "${LATEST_VERSION}" != "${CURRENT_VERSION}" ]]; then
+        footer_text="Powered by Pullio (update available)"
+    else
+        footer_text="Powered by Pullio"
+    fi
+    extra=""
+    if [[ -n $3 ]] && [[ -n $4 ]] && [[ -n $7 ]] && [[ -n $8 ]]; then
+        v_ind=">" && [[ ${3} == "${4}" ]] && v_ind="="
+        r_ind=">" && [[ ${7} == "${8}" ]] && r_ind="="
+        extra=',
+            {
+            "name": "Version",
+            "value": "```\n'${3}'\n ='$v_ind' '${4}'```"
+            },
+            {
+            "name": "Revision (Git SHA)",
+            "value": "```\n'${7:0:6}'\n ='$r_ind' '${8:0:6}'```"
+            }'
+    fi
+    d_ind=">" && [[ ${9} == "${10}" ]] && d_ind="="
+    author_url="${12}" && [[ -z ${12} ]] && author_url="https://github.com/hotio/pullio/raw/master/pullio.png"
+
+    PRIORITY=5
+    name="${2}"
+    description="${1}"
+    image="${5}"
+    image_id="\n${9:0:11}\n =$d_ind ${10:0:11}"
+    version="\n${3}\n =$v_ind ${4}"
+    revision="\n${7:0:6}\n =$r_ind ${8:0:6}"
+    NOW=$(date +"%m-%d-%Y %r")
+      
+    printf -v m "%b\n\nImage:\n%b\n\nImage Id%b\n\nVersion:%b\n\nRevision (Git SHA):%b\n\n%b\n%s\n" \
+     "${description}" "${image}" "${image_id}" "${version}" "${revision}" "${footer_text}" "${NOW}"
+
+    curl "${6}" -F "title=${2}" -F "message=${m}" -F "priority=5" > /dev/null 2>&1
+}
+
 
 send_discord_notification() {
     if [[ "${LATEST_VERSION}" != "${CURRENT_VERSION}" ]]; then
@@ -188,6 +226,7 @@ for i in "${!containers[@]}"; do
     pullio_update=$("${DOCKER_BINARY}" inspect --format='{{ index .Config.Labels "org.hotio.pullio'"${TAG}"'.update" }}' "$container_name")
     pullio_notify=$("${DOCKER_BINARY}" inspect --format='{{ index .Config.Labels "org.hotio.pullio'"${TAG}"'.notify" }}' "$container_name")
     pullio_discord_webhook=$("${DOCKER_BINARY}" inspect --format='{{ index .Config.Labels "org.hotio.pullio'"${TAG}"'.discord.webhook" }}' "$container_name")
+    pullio_gotify_webhook=$("${DOCKER_BINARY}" inspect --format='{{ index .Config.Labels "org.hotio.pullio'"${TAG}"'.gotify.webhook" }}' "$container_name")
     pullio_generic_webhook=$("${DOCKER_BINARY}" inspect --format='{{ index .Config.Labels "org.hotio.pullio'"${TAG}"'.generic.webhook" }}' "$container_name")
     pullio_script_update=($("${DOCKER_BINARY}" inspect --format='{{ index .Config.Labels "org.hotio.pullio'"${TAG}"'.script.update" }}' "$container_name"))
     pullio_script_notify=($("${DOCKER_BINARY}" inspect --format='{{ index .Config.Labels "org.hotio.pullio'"${TAG}"'.script.notify" }}' "$container_name"))
@@ -251,6 +290,10 @@ for i in "${!containers[@]}"; do
                 if [[ -n "$pullio_generic_webhook" ]]; then
                     echo "$container_name: Sending generic webhook..."
                     send_generic_webhook "$status_generic" "$container_name" "$old_opencontainers_image_version" "$new_opencontainers_image_version" "$image_name" "$pullio_generic_webhook" "$old_opencontainers_image_revision" "$new_opencontainers_image_revision" "${container_image_digest/sha256:/}" "${image_digest/sha256:/}" "$pullio_author_avatar" "$pullio_author_url"
+                fi
+                if [[ -n "$pullio_gotify_webhook" ]]; then
+                    echo "$container_name: Sending gotify notification..."
+                    send_gotify_notification "$status" "$container_name" "$old_opencontainers_image_version" "$new_opencontainers_image_version" "$image_name" "$pullio_gotify_webhook" "$old_opencontainers_image_revision" "$new_opencontainers_image_revision" "${container_image_digest/sha256:/}" "${image_digest/sha256:/}" "$color" "$pullio_author_avatar" "$pullio_author_url"
                 fi
                 echo "$image_digest" > "$CACHE_LOCATION/$sum-$container_name.notified"
             fi
