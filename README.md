@@ -2,6 +2,8 @@
 
 All our documentation is located at [hotio.dev](https://hotio.dev).
 
+For gotify notifications, set labels to gotify. I.E. org.hotio.pullio.gotify.webhook
+
 # Support
 
 If you need some assistance, please join our [discord](https://hotio.dev/discord) server.
