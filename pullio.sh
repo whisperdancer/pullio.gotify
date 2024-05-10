@@ -104,19 +104,20 @@ send_gotify_notification() {
 
     PRIORITY=5
     name="${2}"
-    description="${1}"
+    description="**${1}**"
     image="${5}"
     image_id="\n${9:0:11}\n =$d_ind ${10:0:11}"
     version="\n${3}\n =$v_ind ${4}"
     revision="\n${7:0:6}\n =$r_ind ${8:0:6}"
     NOW=$(date +"%m-%d-%Y %r")
       
-    printf -v m "%b\n\nImage:\n%b\n\nImage Id%b\n\nVersion:%b\n\nRevision (Git SHA):%b\n\n%b\n%s\n" \
+    printf -v m "%b\n\n**Image:**\n%b\n\n**Image Id**%b\n\n**Version**:%b\n\n**Revision (Git SHA):**%b\n\n%b\n**%s**\n" \
      "${description}" "${image}" "${image_id}" "${version}" "${revision}" "${footer_text}" "${NOW}"
 
-    curl "${6}" -F "title=${2}" -F "message=${m}" -F "priority=5" > /dev/null 2>&1
-}
+    jsonMessage=$(jq -n --arg title "$name" --arg 'message' "$m" --arg priority "$PRIORITY" '{message: $message, priority: $priority | tonumber, title: $title, "extras": {"client::display": {"contentType": "text/markdown"}}}')
 
+    curl -s -S --json "$jsonMessage" -H 'Content-Type: application/json' "${6}" > /dev/null 2>&1
+}
 
 send_discord_notification() {
     if [[ "${LATEST_VERSION}" != "${CURRENT_VERSION}" ]]; then
