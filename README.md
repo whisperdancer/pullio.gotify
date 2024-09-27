@@ -4,6 +4,8 @@ All our documentation is located at [hotio.dev](https://hotio.dev).
 
 For gotify notifications, set labels to gotify. I.E. org.hotio.pullio.gotify.webhook and add your gotify URL and app token for the webhook.
 
+9/27/24 Updated pullio.sh to version 0.0.7
+
 # Support
 
 If you need some assistance, please join our [discord](https://hotio.dev/discord) server.
